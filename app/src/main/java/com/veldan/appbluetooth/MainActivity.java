@@ -4,6 +4,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -16,12 +17,18 @@ import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 public class MainActivity extends AppCompatActivity implements
         CompoundButton.OnCheckedChangeListener,
         View.OnClickListener,
         AdapterView.OnItemClickListener {
 
     private static final int REQ_ENABLE_BT = 1;// любое [число/символ] служит как ключ
+    private static final int LINKED = 21;// любое [число/символ] служит как ключ
+    private static final int NOT_LINKED = 22;// любое [число/символ] служит как ключ
 
     private Switch mSwitchBluetooth;
     private Button mButtonSearchDevice;
@@ -30,6 +37,8 @@ public class MainActivity extends AppCompatActivity implements
     private ListView mListViewConnectedDevice;
 
     private BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private BluetoothListAdapter listAdapter;
+    private List<BluetoothDevice> bluetoothDevices;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,7 +83,7 @@ public class MainActivity extends AppCompatActivity implements
         } else {
             bluetoothAdapter.disable();
             mButtonSearchDevice.setVisibility(View.GONE);
-            mTextViewStateBluetooth.setText(R.string.Bluetooth_Off);
+            mListViewConnectedDevice.setVisibility(View.GONE);
         }
     }
 
@@ -84,11 +93,37 @@ public class MainActivity extends AppCompatActivity implements
         if (requestCode == REQ_ENABLE_BT) {
             if (resultCode == RESULT_OK && bluetoothAdapter.isEnabled()) {
                 mButtonSearchDevice.setVisibility(View.VISIBLE);
-                mTextViewStateBluetooth.setText(R.string.Bluetooth_ON);
+                mTextViewStateBluetooth.setVisibility(View.GONE);
+                mListViewConnectedDevice.setVisibility(View.VISIBLE);
+                setListAdapter(LINKED);
             } else {
                 mSwitchBluetooth.setChecked(false);
             }
         }
+    }
+
+    private void setListAdapter(int type) {
+        switch (type) {
+            case LINKED:
+                bluetoothDevices = getDevices();
+                listAdapter = new BluetoothListAdapter(this, bluetoothDevices, R.drawable.ic_bluetooth_not_linced);
+                break;
+            case NOT_LINKED:
+                listAdapter = new BluetoothListAdapter(this, bluetoothDevices, R.drawable.ic_bluetooth_linked);
+                break;
+        }
+        mListViewConnectedDevice.setAdapter(listAdapter);
+    }
+
+    private ArrayList<BluetoothDevice> getDevices() {
+        Set<BluetoothDevice> deviceSet = bluetoothAdapter.getBondedDevices();
+        ArrayList<BluetoothDevice> devices = new ArrayList<>();
+        if (!(deviceSet.isEmpty())) {
+            for (BluetoothDevice device : deviceSet) {
+                devices.add(device);
+            }
+        }
+        return devices;
     }
 
     @Override
